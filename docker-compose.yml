@@ -1,0 +1,75 @@
+x-mock-service: &mock-service
+  build:
+    context: .
+    dockerfile: Dockerfile.mock
+  restart: unless-stopped
+  init: true
+  read_only: true
+  cap_drop:
+    - ALL
+  security_opt:
+    - no-new-privileges:true
+  tmpfs:
+    - /tmp:rw,noexec,nosuid,size=16m
+  extra_hosts:
+    - "host.docker.internal:host-gateway"
+  environment:
+    NODE_ENV: production
+    PORT: "4100"
+  healthcheck:
+    test:
+      - CMD
+      - node
+      - -e
+      - "fetch('http://127.0.0.1:4100/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+    interval: 5s
+    timeout: 3s
+    retries: 10
+
+services:
+  inngest:
+    image: inngest/inngest:latest
+    entrypoint: ["inngest"]
+    command: ["dev", "--host", "0.0.0.0", "-u", "http://host.docker.internal:3000"]
+    ports:
+      - "8288:8288"
+
+  temporal:
+    image: temporalio/temporal:latest
+    command: ["server", "start-dev", "--ip", "0.0.0.0"]
+    ports:
+      - "7233:7233"
+      - "8233:8233"
+
+  data-service:
+    <<: *mock-service
+    environment:
+      NODE_ENV: production
+      PORT: "4100"
+      MOCK_SERVICE_NAME: data
+      FAIL_FIRST_N: "0"
+      WORKFLOW_POC_DATABASE_URL: ${WORKFLOW_POC_DATABASE_URL:?Set WORKFLOW_POC_DATABASE_URL in .env}
+    ports:
+      - "127.0.0.1:4101:4100"
+
+  storage-service:
+    <<: *mock-service
+    environment:
+      NODE_ENV: production
+      PORT: "4100"
+      MOCK_SERVICE_NAME: storage
+      FAIL_FIRST_N: "0"
+      WORKFLOW_POC_DATABASE_URL: ${WORKFLOW_POC_DATABASE_URL:?Set WORKFLOW_POC_DATABASE_URL in .env}
+    ports:
+      - "127.0.0.1:4102:4100"
+
+  billing-service:
+    <<: *mock-service
+    environment:
+      NODE_ENV: production
+      PORT: "4100"
+      MOCK_SERVICE_NAME: billing
+      FAIL_FIRST_N: ${BILLING_FAIL_FIRST_N:-2}
+      WORKFLOW_POC_DATABASE_URL: ${WORKFLOW_POC_DATABASE_URL:?Set WORKFLOW_POC_DATABASE_URL in .env}
+    ports:
+      - "127.0.0.1:4103:4100"
