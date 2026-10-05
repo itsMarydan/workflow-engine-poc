@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "engines": {
-    "node": ">=20"
+    "node": ">=22.5"
   },
   "scripts": {
     "mock-service": "tsx src/mock-service.ts"
@@ -12,12 +12,10 @@
     "@temporalio/client": "^1.24.0",
     "@temporalio/worker": "^1.24.0",
     "@temporalio/workflow": "^1.24.0",
-    "inngest": "^4.21.0",
-    "pg": "^8.23.1"
+    "inngest": "^4.21.0"
   },
   "devDependencies": {
-    "@types/node": "^26.6.3",
-    "@types/pg": "^8.23.1",
+    "@types/node": "^26.6.4",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2"
   }

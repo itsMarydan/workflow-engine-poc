@@ -11,8 +11,8 @@ x-mock-service: &mock-service
     - no-new-privileges:true
   tmpfs:
     - /tmp:rw,noexec,nosuid,size=16m
-  extra_hosts:
-    - "host.docker.internal:host-gateway"
+  volumes:
+    - ./.data/mock-services:/data
   environment:
     NODE_ENV: production
     PORT: "4100"
@@ -48,7 +48,6 @@ services:
       PORT: "4100"
       MOCK_SERVICE_NAME: data
       FAIL_FIRST_N: "0"
-      WORKFLOW_POC_DATABASE_URL: ${WORKFLOW_POC_DATABASE_URL:?Set WORKFLOW_POC_DATABASE_URL in .env}
     ports:
       - "127.0.0.1:4101:4100"
 
@@ -59,7 +58,6 @@ services:
       PORT: "4100"
       MOCK_SERVICE_NAME: storage
       FAIL_FIRST_N: "0"
-      WORKFLOW_POC_DATABASE_URL: ${WORKFLOW_POC_DATABASE_URL:?Set WORKFLOW_POC_DATABASE_URL in .env}
     ports:
       - "127.0.0.1:4102:4100"
 
@@ -70,6 +68,5 @@ services:
       PORT: "4100"
       MOCK_SERVICE_NAME: billing
       FAIL_FIRST_N: ${BILLING_FAIL_FIRST_N:-2}
-      WORKFLOW_POC_DATABASE_URL: ${WORKFLOW_POC_DATABASE_URL:?Set WORKFLOW_POC_DATABASE_URL in .env}
     ports:
       - "127.0.0.1:4103:4100"

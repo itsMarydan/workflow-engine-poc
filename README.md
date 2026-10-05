@@ -45,15 +45,14 @@ Historically, this kind of process has been handled with NATS JetStream. Use tha
 
 ## Local Infrastructure
 
-The mock services write attempt history and committed operations to the `workflow_poc` schema in the shared Postgres `app` database. Start Postgres first, then start the engine servers and mocks:
+The mocks need no shared database. Each service stores its attempt history and committed operations in a local SQLite file under `.data/mock-services/`. The folder is gitignored and bind-mounted into the containers, so the demo data survives container restarts and remains with the project checkout.
 
 ```sh
-cd /path/to/local-databases
-docker compose --profile sql up -d
-
 cd /path/to/workflow-engine-poc
-docker compose --env-file .env.example up -d --build
+docker compose up -d --build
 ```
+
+Docker Compose is the only runtime prerequisite for the mock services. The containers use Node 22. To run TypeScript directly on the host, use Node 22.5 or newer for the built-in `node:sqlite` module.
 
 - Inngest Dev Server: http://localhost:8288
 - Temporal UI: http://localhost:8233
@@ -61,13 +60,6 @@ docker compose --env-file .env.example up -d --build
 - Data mock: `http://localhost:4101`
 - Storage mock: `http://localhost:4102`
 - Billing mock: `http://localhost:4103`
-
-The example database URL uses the local stack's documented defaults. Replace `/path/to/local-databases` with the stack's location on your machine. If your Postgres credentials or port differ, copy `.env.example` to `.env`, update `WORKFLOW_POC_DATABASE_URL`, and run Compose without `--env-file .env.example`; `.env` is gitignored. Redis is not needed by these mocks. Start it separately only for the self-hosted Inngest configuration planned for the engine durability experiments:
-
-```sh
-cd /path/to/local-databases
-docker compose --profile redis up -d
-```
 
 Each mock exposes `GET /health`, `GET /_admin/state`, and `POST /_admin/reset`. The admin routes are intended for this local spike and the service ports bind only to loopback on the host. To configure deterministic billing failures:
 
@@ -77,9 +69,9 @@ curl -X POST http://localhost:4103/_admin/reset \
 	-d '{"failFirst":2}'
 ```
 
-Write operations require an `Idempotency-Key` header. Data and storage accept `POST /workspaces/:workspaceId/resources`; billing accepts `POST /workspaces/:workspaceId/billing-profiles`. Inspect attempts and committed effects at `/_admin/state`. The `workflow_poc.mock_attempts` table retains failed attempts, including `rolled_back_injected_failure`; `workflow_poc.mock_operations` contains only committed effects and has a unique constraint on service plus idempotency key. This makes the injected retry and deduplication behavior inspectable directly in Postgres.
+Write operations require an `Idempotency-Key` header. Data and storage accept `POST /workspaces/:workspaceId/resources`; billing accepts `POST /workspaces/:workspaceId/billing-profiles`. Inspect attempts and committed effects at `/_admin/state`. Each service's `mock_attempts` table retains failed attempts, including `rolled_back_injected_failure`; its `mock_operations` table contains only committed effects and has a unique constraint on idempotency key. This makes the retry, rollback, and deduplication behavior inspectable through the API or directly in that service's SQLite file.
 
-The mocks use Postgres and survive container restarts. The engine containers are still dev-server bootstraps: Inngest does not yet use external Postgres/Redis, and Temporal does not yet use Postgres persistence. Configure those durable engine backends before treating engine restart behavior as evidence for the workflow recovery scenarios above.
+The mock database files are `data.sqlite`, `storage.sqlite`, and `billing.sqlite` in `.data/mock-services/`. The mocks use SQLite WAL mode with full synchronous writes and survive container restarts. The engine containers are still dev-server bootstraps: Inngest does not yet use external Postgres/Redis, and Temporal does not yet use Postgres persistence. Configure those durable engine backends before treating engine restart behavior as evidence for the workflow recovery scenarios above.
 
 ## Dependencies
 
