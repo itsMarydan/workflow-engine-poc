@@ -6,7 +6,11 @@
     "node": ">=22.5"
   },
   "scripts": {
-    "mock-service": "tsx src/mock-service.ts"
+    "mock-service": "tsx src/mock-service.ts",
+    "inngest:serve": "tsx src/inngest-server.ts",
+    "inngest:trigger": "tsx --eval \"import { triggerProvisionWorkspace } from './src/workspace/inngest.ts'; (async () => { await triggerProvisionWorkspace({ requestId: 'demo-request-002', workspaceId: 'demo-workspace', engines: ['inngest'] }); console.log('Inngest event sent'); })();\"",
+    "temporal:worker": "tsx src/temporal-worker.ts",
+    "temporal:trigger": "tsx --eval \"import { triggerTemporalProvision } from './src/workspace/temporal-trigger.ts'; (async () => { const workflowId = await triggerTemporalProvision({ requestId: 'demo-request-temporal-001', workspaceId: 'demo-workspace', engines: ['temporal'] }); console.log('Temporal workflow started:', workflowId); })();\""
   },
   "dependencies": {
     "@temporalio/client": "^1.24.0",
@@ -17,6 +21,6 @@
   "devDependencies": {
     "@types/node": "^26.6.4",
     "tsx": "^4.23.15",
-    "typescript": "^7.0.2"
+    "typescript": "^5.6.3"
   }
 }
